@@ -10,8 +10,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ЕГЭ">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232346c8'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='26' text-anchor='middle' fill='white'%3E85%3C/text%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232346c8'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='26' text-anchor='middle' fill='white'%3E85%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=PT+Mono&family=Unbounded:wght@600&display=swap">
@@ -100,6 +101,10 @@ details.settings summary{cursor:pointer; padding-block:6px}
 .backup .row{display:flex; gap:8px}
 .backup .big{font-size:15px; padding:12px}
 
+.install{gap:10px}
+.install b{font-weight:600}
+.install .links{justify-content:flex-start}
+
 /* tasks */
 .prog b{font-family:var(--f-mono); font-weight:400; font-size:22px}
 .bar{height:10px; border-radius:5px; background:var(--soft); overflow:hidden}
@@ -165,6 +170,11 @@ details.settings summary{cursor:pointer; padding-block:6px}
 
   <!-- Сегодня -->
   <section class="view" id="v-today">
+    <div class="card install" id="install" hidden>
+      <div><b>Установи как приложение</b><div class="lbl">Появится иконка на главном экране, и всё будет работать даже без интернета.</div></div>
+      <button class="big" type="button" id="b-install">Установить</button>
+      <div class="links"><button class="link" type="button" id="b-install-later">Не сейчас</button></div>
+    </div>
     <div class="card focus">
       <div class="chips" id="t-subj" role="group" aria-label="Предмет"></div>
       <div class="plan-hint" id="plan-hint"></div>
@@ -622,6 +632,27 @@ details.settings summary{cursor:pointer; padding-block:6px}
     };
     r.readAsText(f);
   });
+
+
+  /* --- install & offline --- */
+  var deferredInstall = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferredInstall = e;
+    if(lsGet('ege27-install-later') !== ymd(new Date())) $('install').hidden = false;
+  });
+  window.addEventListener('appinstalled', function(){
+    $('install').hidden = true; deferredInstall = null;
+    flash('Готово. Ищи иконку «ЕГЭ» на главном экране.');
+  });
+  $('b-install').addEventListener('click', function(){
+    if(!deferredInstall) return;
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(function(){ deferredInstall = null; $('install').hidden = true; }, function(){});
+  });
+  $('b-install-later').addEventListener('click', function(){ lsSet('ege27-install-later', ymd(new Date())); $('install').hidden = true; });
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  }
 
   function renderAll(){ renderHeader(); renderTimer(); renderStats(); renderTasks(); renderTrials(); }
   renderNav();
